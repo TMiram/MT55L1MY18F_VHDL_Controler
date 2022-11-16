@@ -1,0 +1,10 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../SRAM.srcs/sources_1/new/Sram_ctrl.vhd" \
+"../../../../SRAM.srcs/sources_1/new/mt55l512y36f.vhd" \
+"../../../../SRAM.srcs/sources_1/new/top.vhd" \
+"../../../../SRAM.srcs/sources_1/new/tristate.vhd" \
+"../../../../SRAM.srcs/sim_1/new/top_tb.vhd" \
+
+# Do not sort compile order
+nosort
