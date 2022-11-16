@@ -68,6 +68,14 @@ begin
         READ <= '1';
         Data_write <= (others => '1');
         Address <= (others => '0');
+        
+        
+        wait for 1 * TbPeriod;
+        WRITE <= '0';
+        READ <= '1';
+        Data_write <= (others => '1');
+        Address <= "0000000000000000001" ;
+        
         -- EDIT Add stimuli here
         wait for 100 * TbPeriod;
 

@@ -117,8 +117,11 @@ signal      control_sig_delay_one: STD_LOGIC_VECTOR (4 DOWNTO 0);
 signal      state_signal         : STD_LOGIC;
 
 --for burst mode:
-signal      previous_state_read  : STD_LOGIC := '0';
-signal      previous_state_write : STD_LOGIC := '0';
+signal      previous_state_read    : STD_LOGIC := '0';
+signal      previous_state_write   : STD_LOGIC := '0';
+signal      previous_state_burst_r : STD_LOGIC := '0';
+signal      previous_state_burst_w : STD_LOGIC := '0';
+signal      previous_Address       : STD_LOGIC_VECTOR (addr_bits - 1 DOWNTO 0);
 
         --END OF CONSTANTS AND SIGNALS DECLARATION
         
@@ -153,7 +156,7 @@ begin
     if( falling_edge(Clk_in))
     then
     
-        if(READ = '1')                  --READ (read=1, write=0 or 1)
+        if(READ = '1'and BURST= '0')                  --READ (read=1, write=0 or 1)
         then
             Addr <= Addr_req;
             --state read
@@ -168,9 +171,14 @@ begin
             Ce_n     <=  '0';--Ce_n                   <= '0';
             Ce2_n    <=  '0';--Ce2_n                  <= '0';
             Ce2      <=  '1';--Ce2                    <= '1';
-            
+           
+            --previous states update
+            previous_state_read  <= '1';
+            previous_state_write  <= '0';
+            previous_state_burst_r <= '0';
+            previous_state_burst_w <= '0';
         
-        elsif(WRITE = '1')              --WRITE (read=0, write=1)
+        elsif(WRITE = '1' and BURST= '0')              --WRITE (read=0, write=1)
         then
             Addr <= Addr_req;
             --state write
@@ -185,27 +193,71 @@ begin
             Ce2_n    <=  '0';--Ce2_n                  <= '0';
             Ce2      <=  '1';--Ce2                    <= '1';
             
+            previous_state_read <= '0';
+            previous_state_write <= '1';
+            previous_state_burst_r <= '0';
+            previous_state_burst_w <= '0';
             
-          
-        else                            --DESELECT (read and write =0)
-            Addr <= Addr_req; 
+            
+        else if ( (previous_state_read = '1' or previous_state_burst_r='1')  and BURST= '1')    --READ BURST
+        then
+            Addr <= (previous_Address + 1);
+            --state write
+            D_in_sig_delay_one         <= D_in;
+            D_in_sig_delay_two         <= D_in_sig_delay_one;
+            state_signal               <= '0';
+            
+                        --delaying control signals 1 time
+            Ld_n     <=  '1';--Ld_n                   <= '1'; burst
+            Rw_n     <=  '1';--Rw_n                   <= '1';
+            Ce_n     <=  '0';--Ce_n                   <= '0';
+            Ce2_n    <=  '0';--Ce2_n                  <= '0';
+            Ce2      <=  '1';--Ce2                    <= '1';
+            
+            previous_state_read <= '0';
+            previous_state_write <= '0';
+            previous_state_burst_r <= '1';
+            previous_state_burst_w <= '0';
+            
+             
+        else if ( (previous_state_write = '1' or previous_state_burst_w='1')  and BURST= '1')   --WRITE BURST
+        then       
+        
+            Addr <= (previous_Address + 1);
+            --state write
+            D_in_sig_delay_one         <= D_in;
+            D_in_sig_delay_two         <= D_in_sig_delay_one;
+            state_signal               <= '0';
+            
+                        --delaying control signals 1 time
+            Ld_n     <=  '1';--Ld_n                   <= '1'; burst
+            Rw_n     <=  '0';--Rw_n                   <= '1';
+            Ce_n     <=  '0';--Ce_n                   <= '0';
+            Ce2_n    <=  '0';--Ce2_n                  <= '0';
+            Ce2      <=  '1';--Ce2                    <= '1';
+            
+            previous_state_read <= '0';
+            previous_state_write <= '0';
+            previous_state_burst_r <= '0';
+            previous_state_burst_w <= '1';
+        else                            --DESELECT (read, write and [sometimes] burst =0)
+            Addr <= Addr_req;
+            
             --state deselect          
-            Ld_n     <=  '0';--Ld_n                   <= '0';
+            Ld_n     <=  '0';--Ld_n                   <= '1'; burst
             Rw_n     <=  '0';--Rw_n                   <= '1';
             Ce_n     <=  '1';--Ce_n                   <= '0';
             Ce2_n    <=  '1';--Ce2_n                  <= '0';
             Ce2      <=  '0';--Ce2                    <= '1';
+            
+            previous_state_burst_r <= '0';
+            previous_state_burst_w <= '0';
         
         end if;
         
-      
-        
-    
 
-        
-    --D-LATCH to memorize previous states on READ and WRITE pins
-    previous_state_read  <= READ;
-    previous_state_write <= WRITE;
+    --D-LATCH to memorize previous address
+    previous_Address <= Addr_req;
     
     end if;
 end process;
